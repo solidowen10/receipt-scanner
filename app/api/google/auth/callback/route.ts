@@ -8,7 +8,8 @@ export async function GET(request: NextRequest) {
   const code = request.nextUrl.searchParams.get("code");
   const state = request.nextUrl.searchParams.get("state");
   const error = request.nextUrl.searchParams.get("error");
-  const redirectUrl = new URL(`${APP_BASE_PATH}?tab=setup`, request.url);
+  const publicBaseUrl = (process.env.PUBLIC_BASE_URL || `https://tool.luruee.com${APP_BASE_PATH}`).replace(/\/+$/, "");
+  const redirectUrl = new URL(`${publicBaseUrl}?tab=setup`);
 
   if (error) {
     redirectUrl.searchParams.set("google", "error");
