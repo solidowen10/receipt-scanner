@@ -3,11 +3,11 @@ module.exports = {
     {
       name: "receipt-scanner",
       script: "node_modules/next/dist/bin/next",
-      args: "start -p 3003",
+      args: "start -p 3004",
       cwd: __dirname,
       env: {
         NODE_ENV: "production",
-        PORT: "3003",
+        PORT: "3004",
       },
     },
   ],

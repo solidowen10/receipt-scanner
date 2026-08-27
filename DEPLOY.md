@@ -1,4 +1,4 @@
-# Deploying to luruee.com/receipt-scanner
+# Deploying to tool.luruee.com/receipt-scanner
 
 This app is ready for the same self-hosted pattern used by the existing lürú tools:
 
@@ -15,14 +15,14 @@ Create `.env` on the server:
 
 ```text
 NODE_ENV=production
-PORT=3003
-PUBLIC_BASE_URL=https://luruee.com/receipt-scanner
-LURU_TOOLS_ORIGIN=https://luruee.com
+PORT=3004
+PUBLIC_BASE_URL=https://tool.luruee.com/receipt-scanner
+LURU_TOOLS_ORIGIN=https://tool.luruee.com
 AUTH_SERVICE_INTERNAL_URL=http://127.0.0.1:3002/auth/api/session
 
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
-GOOGLE_REDIRECT_URI=https://luruee.com/receipt-scanner/api/google/auth/callback
+GOOGLE_REDIRECT_URI=https://tool.luruee.com/receipt-scanner/api/google/auth/callback
 GOOGLE_OAUTH_STATE_SECRET=...
 
 RECEIPT_DB_PATH=/opt/luru-tools/receipt-scanner/data/receipt-scanner.db
@@ -33,7 +33,7 @@ RECEIPT_DB_PATH=/opt/luru-tools/receipt-scanner/data/receipt-scanner.db
 In Google Cloud Console, add:
 
 ```text
-https://luruee.com/receipt-scanner/api/google/auth/callback
+https://tool.luruee.com/receipt-scanner/api/google/auth/callback
 ```
 
 as an authorized redirect URI.
@@ -65,8 +65,8 @@ to the `luruee.com` server block, then test and reload Nginx.
 ## 6. Verify
 
 ```bash
-curl http://127.0.0.1:3003/receipt-scanner
-curl https://luruee.com/receipt-scanner
+curl http://127.0.0.1:3004/receipt-scanner
+curl https://tool.luruee.com/receipt-scanner
 ```
 
 Then test:
