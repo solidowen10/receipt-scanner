@@ -186,17 +186,30 @@ export async function runDriveOcr(userId: string, buffer: Buffer, mimeType: stri
   const drive = google.drive({ version: "v3", auth });
   const user = getStoredUser(userId);
 
-  const doc = await drive.files.create({
-    requestBody: {
-      name: `luru-ocr-temp-${Date.now()}`,
-      mimeType: "application/vnd.google-apps.document",
-      parents: user.driveFolderId ? [user.driveFolderId] : undefined,
-    },
-    media: { mimeType, body: bufferToStream(buffer) },
-    fields: "id",
-    ocrLanguage: "zh",
-    supportsAllDrives: true,
-  } as drive_v3.Params$Resource$Files$Create);
+  let doc;
+  try {
+    doc = await drive.files.create({
+      requestBody: {
+        name: `luru-ocr-temp-${Date.now()}`,
+        mimeType: "application/vnd.google-apps.document",
+        parents: user.driveFolderId ? [user.driveFolderId] : undefined,
+      },
+      media: { mimeType, body: bufferToStream(buffer) },
+      fields: "id",
+      supportsAllDrives: true,
+    } as drive_v3.Params$Resource$Files$Create);
+  } catch (error: any) {
+    console.error("Google Drive OCR create failed", {
+      message: error?.message,
+      code: error?.code,
+      status: error?.response?.status,
+      data: error?.response?.data,
+      errors: error?.errors,
+      mimeType,
+      hasFolder: Boolean(user.driveFolderId),
+    });
+    throw error;
+  }
 
   const docId = doc.data.id;
   if (!docId) throw new Error("Google Drive OCR did not return a document");
