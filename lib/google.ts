@@ -194,7 +194,7 @@ export async function runDriveOcr(userId: string, buffer: Buffer, mimeType: stri
     },
     media: { mimeType, body: bufferToStream(buffer) },
     fields: "id",
-    ocrLanguage: "zh-TW",
+    ocrLanguage: "zh",
     supportsAllDrives: true,
   } as drive_v3.Params$Resource$Files$Create);
 
