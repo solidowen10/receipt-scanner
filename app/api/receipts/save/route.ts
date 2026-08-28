@@ -47,7 +47,7 @@ export async function POST(request: NextRequest) {
     };
     const filename = `${renderFilenameBase(settings.filenameTemplate, values)}${upload.extension}`;
     const buffer = fs.readFileSync(upload.filePath);
-    const driveFile = await uploadOriginalReceipt(user.userId, buffer, upload.mimeType, filename);
+    const driveFile = await uploadOriginalReceipt(user.userId, buffer, upload.mimeType, filename, values.date || null);
 
     const record: ReceiptSheetRecord = {
       recordedAt: formatTaipeiTimestamp(new Date()),

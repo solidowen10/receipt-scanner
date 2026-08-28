@@ -50,7 +50,7 @@ export default function LuruShellHeader({
     <header className="luru-shell-header">
       <div className="luru-shell-header-inner">
         <a className="luru-shell-brand" href={APP_BASE_PATH} aria-label="Receipt Scanner home">
-          <img className="luru-shell-logo" src={LOGO_SRC} alt="luruee" />
+          <img className="luru-shell-logo" src={LOGO_SRC} alt="lürúee tools" />
           <span className="luru-shell-app-name">
             Receipt <em>Scanner</em>
           </span>

@@ -2,7 +2,7 @@ export const APP_BASE_PATH = "/receipt-scanner";
 
 export const APP_NAME = "Receipt Scanner";
 
-export const DEFAULT_TOOLS_ORIGIN = "https://luruee.com";
+export const DEFAULT_TOOLS_ORIGIN = "https://tool.luruee.com";
 
 export const LURU_TOOLS_ORIGIN =
   (process.env.NEXT_PUBLIC_LURU_TOOLS_ORIGIN || process.env.LURU_TOOLS_ORIGIN || DEFAULT_TOOLS_ORIGIN).replace(/\/+$/, "");

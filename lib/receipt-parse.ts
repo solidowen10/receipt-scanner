@@ -20,7 +20,7 @@ export type ReceiptDraft = {
 
 const TOTAL_WORDS = /總\s*計|合\s*計|應\s*付|應\s*收|實\s*收|總金額|金額總計|小\s*計/i;
 const NOISE_WORDS =
-  /^(?:統一編號|發票|電子發票|電話|地址|日期|時間|交易|明細|品名|數量|單價|金額|隨機碼|買受人|賣方統編|QRCode|QR Code|載具|退貨|折讓)/i;
+  /^(?:統一編號|發票|電子發票|電話|地址|日期|時間|交易|明細|品名|數量|單價|金額|隨機碼|買受人|賣方|買方|賣方統編|QRCode|QR Code|載具|退貨|折讓)/i;
 
 export function parseReceiptText(text: string): ReceiptDraft {
   const normalized = normalizeOcrText(text);
@@ -111,9 +111,18 @@ function toAmount(value: string) {
 
 function extractMerchant(lines: string[]) {
   const seller = lines
-    .map((line) => line.match(/(?:賣方|營業人|店名|商店)[:：\s]+(.{2,40})/)?.[1]?.trim())
-    .find(Boolean);
+    .map((line) => line.match(/(?:營業人|店名|商店)[:：\s]+(.{2,40})/)?.[1]?.trim())
+    .find((value) => value && !/^\d{8}$/.test(value));
   if (seller) return cleanupMerchant(seller);
+
+  const brandLine = lines.find((line) => {
+    if (NOISE_WORDS.test(line)) return false;
+    if (extractInvoiceNumber(line)) return false;
+    if (/^(?:https?:\/\/)?[\w.-]+\.[a-z]{2,}/i.test(line)) return false;
+    if (/^(?:dodohome\s*)?嘟嘟房$/i.test(line)) return true;
+    return false;
+  });
+  if (brandLine) return cleanupMerchant(brandLine.replace(/^dodohome\s*/i, ""));
 
   const companyPattern = /[\p{Script=Han}A-Za-z0-9（）()\-&\s]{2,}(?:股份有限公司|有限公司|公司|企業社|商行|銀行|藥局|診所|醫院|門市|超商|超市|餐廳|咖啡|旅店|飯店|福利中心)/u;
   const preferred = lines.find((line) => !NOISE_WORDS.test(line) && companyPattern.test(line));
@@ -161,7 +170,7 @@ function categorizeReceipt(text: string): ReceiptCategory | null {
   const checks: Array<[ReceiptCategory, RegExp]> = [
     ["餐飲", /餐廳|咖啡|小吃|火鍋|拉麵|麵|飲料|茶|便當|早餐|food|cafe|coffee|restaurant/],
     ["超市", /全聯|家樂福|costco|超市|超商|7-?11|familymart|全家|便利商店|market/],
-    ["交通", /加油|停車|捷運|台鐵|高鐵|計程車|uber|taxi|交通/],
+    ["交通", /加油|停車|嘟嘟房|dodohome|捷運|台鐵|高鐵|計程車|uber|taxi|交通/],
     ["娛樂", /電影|影城|遊戲|ktv|展覽|娛樂/],
     ["醫療", /藥局|診所|醫院|牙醫|醫療|pharmacy|clinic/],
     ["購物", /百貨|購物|商場|服飾|鞋|電器|shop|store/],

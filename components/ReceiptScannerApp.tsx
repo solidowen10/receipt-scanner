@@ -177,7 +177,7 @@ export default function ReceiptScannerApp() {
         <div className="panel login-panel">
           <div>
             <h1>Receipt Scanner</h1>
-            <p className="muted-copy">LINE login is required for lürú tools.</p>
+            <p className="muted-copy">LINE login is required for lürúee tools.</p>
           </div>
           <a className="primary-button" href={`/auth/login?next=${APP_BASE_PATH}`}>
             <ShieldCheck size={18} />
@@ -231,6 +231,13 @@ function SetupView({
   const [sheets, setSheets] = useState<SheetOption[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [savedAction, setSavedAction] = useState<string | null>(null);
+
+  const filenameDirty = useMemo(() => {
+    const savedTemplate = settings.filenameTemplate?.length ? settings.filenameTemplate : DEFAULT_TEMPLATE;
+    return defaultPayerShortName !== (settings.defaultPayerShortName || "") || JSON.stringify(template) !== JSON.stringify(savedTemplate);
+  }, [defaultPayerShortName, settings.defaultPayerShortName, settings.filenameTemplate, template]);
+  const filenameSaved = !filenameDirty || savedAction === "filename";
 
   useEffect(() => {
     setDefaultPayerShortName(settings.defaultPayerShortName || "");
@@ -245,6 +252,7 @@ function SetupView({
     try {
       await onSaveSettings({ driveFolderInput: folderLink });
       setFolderLink("");
+      setSavedAction("folder-link");
       setMessage("Drive folder saved.");
     } catch (error) {
       setMessage(errorMessage(error));
@@ -259,6 +267,7 @@ function SetupView({
     try {
       await onSaveSettings({ sheetInput: sheetLink });
       setSheetLink("");
+      setSavedAction("sheet-link");
       setMessage("Google Sheet saved.");
     } catch (error) {
       setMessage(errorMessage(error));
@@ -328,6 +337,7 @@ function SetupView({
       });
       setSheets((current) => [data.sheet, ...current.filter((sheet) => sheet.id !== data.sheet.id)]);
       await onReload();
+      setSavedAction("create-sheet");
       setMessage("Google Sheet created.");
     } catch (error) {
       setMessage(errorMessage(error));
@@ -354,6 +364,7 @@ function SetupView({
     setMessage(null);
     try {
       await onSaveSettings({ filenameTemplate: template, defaultPayerShortName });
+      setSavedAction("filename");
       setMessage("Filename settings saved.");
     } catch (error) {
       setMessage(errorMessage(error));
@@ -426,11 +437,23 @@ function SetupView({
         <div className="form-row">
           <label className="field">
             <span>Folder link</span>
-            <input value={folderLink} onChange={(event) => setFolderLink(event.target.value)} placeholder="https://drive.google.com/drive/folders/..." />
+            <input
+              value={folderLink}
+              onChange={(event) => {
+                setFolderLink(event.target.value);
+                if (savedAction === "folder-link") setSavedAction(null);
+              }}
+              placeholder="https://drive.google.com/drive/folders/..."
+            />
           </label>
-          <button className="secondary-button form-button" type="button" onClick={saveFolderLink} disabled={!settings.connected || !folderLink.trim() || busy === "folder-link"}>
-            {busy === "folder-link" ? <Loader2 className="spin" size={17} /> : <Save size={17} />}
-            <span>Use link</span>
+          <button
+            className={`secondary-button form-button${savedAction === "folder-link" ? " is-complete" : ""}`}
+            type="button"
+            onClick={saveFolderLink}
+            disabled={!settings.connected || !folderLink.trim() || busy === "folder-link" || savedAction === "folder-link"}
+          >
+            {busy === "folder-link" ? <Loader2 className="spin" size={17} /> : savedAction === "folder-link" ? <CheckCircle2 size={17} /> : <Save size={17} />}
+            <span>{busy === "folder-link" ? "Saving" : savedAction === "folder-link" ? "Saved" : "Use link"}</span>
           </button>
         </div>
 
@@ -451,8 +474,13 @@ function SetupView({
                     <Folder size={18} />
                     <span>{folder.name}</span>
                   </button>
-                  <button className="small-button" type="button" onClick={() => useFolder(folder)} disabled={busy === `folder-${folder.id}`}>
-                    Use
+                  <button
+                    className={`small-button${settings.driveFolderId === folder.id ? " is-complete" : ""}`}
+                    type="button"
+                    onClick={() => useFolder(folder)}
+                    disabled={busy === `folder-${folder.id}` || settings.driveFolderId === folder.id}
+                  >
+                    {busy === `folder-${folder.id}` ? "Saving" : settings.driveFolderId === folder.id ? "Saved" : "Use"}
                   </button>
                 </div>
               ))}
@@ -476,22 +504,45 @@ function SetupView({
         <div className="form-row">
           <label className="field">
             <span>Sheet link</span>
-            <input value={sheetLink} onChange={(event) => setSheetLink(event.target.value)} placeholder="https://docs.google.com/spreadsheets/d/..." />
+            <input
+              value={sheetLink}
+              onChange={(event) => {
+                setSheetLink(event.target.value);
+                if (savedAction === "sheet-link") setSavedAction(null);
+              }}
+              placeholder="https://docs.google.com/spreadsheets/d/..."
+            />
           </label>
-          <button className="secondary-button form-button" type="button" onClick={saveSheetLink} disabled={!settings.connected || !sheetLink.trim() || busy === "sheet-link"}>
-            {busy === "sheet-link" ? <Loader2 className="spin" size={17} /> : <Save size={17} />}
-            <span>Use link</span>
+          <button
+            className={`secondary-button form-button${savedAction === "sheet-link" ? " is-complete" : ""}`}
+            type="button"
+            onClick={saveSheetLink}
+            disabled={!settings.connected || !sheetLink.trim() || busy === "sheet-link" || savedAction === "sheet-link"}
+          >
+            {busy === "sheet-link" ? <Loader2 className="spin" size={17} /> : savedAction === "sheet-link" ? <CheckCircle2 size={17} /> : <Save size={17} />}
+            <span>{busy === "sheet-link" ? "Saving" : savedAction === "sheet-link" ? "Saved" : "Use link"}</span>
           </button>
         </div>
 
         <div className="form-row">
           <label className="field">
             <span>New sheet</span>
-            <input value={sheetTitle} onChange={(event) => setSheetTitle(event.target.value)} />
+            <input
+              value={sheetTitle}
+              onChange={(event) => {
+                setSheetTitle(event.target.value);
+                if (savedAction === "create-sheet") setSavedAction(null);
+              }}
+            />
           </label>
-          <button className="secondary-button form-button" type="button" onClick={createSheet} disabled={!settings.connected || busy === "create-sheet"}>
-            {busy === "create-sheet" ? <Loader2 className="spin" size={17} /> : <FileSpreadsheet size={17} />}
-            <span>Create</span>
+          <button
+            className={`secondary-button form-button${savedAction === "create-sheet" ? " is-complete" : ""}`}
+            type="button"
+            onClick={createSheet}
+            disabled={!settings.connected || busy === "create-sheet" || savedAction === "create-sheet"}
+          >
+            {busy === "create-sheet" ? <Loader2 className="spin" size={17} /> : savedAction === "create-sheet" ? <CheckCircle2 size={17} /> : <FileSpreadsheet size={17} />}
+            <span>{busy === "create-sheet" ? "Creating" : savedAction === "create-sheet" ? "Created" : "Create"}</span>
           </button>
         </div>
 
@@ -503,8 +554,13 @@ function SetupView({
                   <FileSpreadsheet size={18} />
                   <span>{sheet.name}</span>
                 </div>
-                <button className="small-button" type="button" onClick={() => useSheet(sheet)} disabled={busy === `sheet-${sheet.id}`}>
-                  Use
+                <button
+                  className={`small-button${settings.sheetId === sheet.id ? " is-complete" : ""}`}
+                  type="button"
+                  onClick={() => useSheet(sheet)}
+                  disabled={busy === `sheet-${sheet.id}` || settings.sheetId === sheet.id}
+                >
+                  {busy === `sheet-${sheet.id}` ? "Saving" : settings.sheetId === sheet.id ? "Saved" : "Use"}
                 </button>
               </div>
             ))}
@@ -518,18 +574,37 @@ function SetupView({
             <h2>Filename</h2>
             <p>{renderFilenamePreview(template, { payerShortName: defaultPayerShortName || "OL" })}.jpg</p>
           </div>
-          <button className="primary-button" type="button" onClick={saveFilenameSettings} disabled={busy === "filename"}>
-            {busy === "filename" ? <Loader2 className="spin" size={17} /> : <Save size={17} />}
-            <span>Save</span>
+          <button
+            className={`primary-button${filenameSaved ? " is-complete" : ""}`}
+            type="button"
+            onClick={saveFilenameSettings}
+            disabled={busy === "filename" || filenameSaved}
+          >
+            {busy === "filename" ? <Loader2 className="spin" size={17} /> : filenameSaved ? <CheckCircle2 size={17} /> : <Save size={17} />}
+            <span>{busy === "filename" ? "Saving" : filenameSaved ? "Saved" : "Save"}</span>
           </button>
         </div>
 
         <label className="field compact-field">
           <span>Default payer short name</span>
-          <input value={defaultPayerShortName} onChange={(event) => setDefaultPayerShortName(event.target.value)} placeholder="OL" />
+          <input
+            value={defaultPayerShortName}
+            onChange={(event) => {
+              setDefaultPayerShortName(event.target.value);
+              if (savedAction === "filename") setSavedAction(null);
+            }}
+            placeholder="OL"
+          />
         </label>
 
-        <FilenameBuilder template={template} onChange={setTemplate} previewValues={{ payerShortName: defaultPayerShortName || "OL" }} />
+        <FilenameBuilder
+          template={template}
+          onChange={(nextTemplate) => {
+            setTemplate(nextTemplate);
+            if (savedAction === "filename") setSavedAction(null);
+          }}
+          previewValues={{ payerShortName: defaultPayerShortName || "OL" }}
+        />
       </section>
     </div>
   );
@@ -541,6 +616,7 @@ function ScanView({ settings, onSetup, onSaved }: { settings: SettingsPayload; o
   const [message, setMessage] = useState<string | null>(null);
   const [draft, setDraft] = useState<DraftForm | null>(null);
   const [result, setResult] = useState<SaveResult | null>(null);
+  const [extractComplete, setExtractComplete] = useState(false);
 
   const filenamePreview = useMemo(() => {
     if (!draft) return renderFilenamePreview(settings.filenameTemplate, { payerShortName: settings.defaultPayerShortName || "OL" });
@@ -560,6 +636,7 @@ function ScanView({ settings, onSetup, onSaved }: { settings: SettingsPayload; o
     setBusy("ocr");
     setMessage(null);
     setResult(null);
+    setExtractComplete(false);
     try {
       const form = new FormData();
       form.append("receipt", file);
@@ -583,7 +660,9 @@ function ScanView({ settings, onSetup, onSaved }: { settings: SettingsPayload; o
         notes: data.draft.notes || "",
         ocrText: data.draft.ocrText || "",
       });
+      setExtractComplete(true);
     } catch (error) {
+      setExtractComplete(false);
       setMessage(errorMessage(error));
     } finally {
       setBusy(null);
@@ -603,6 +682,7 @@ function ScanView({ settings, onSetup, onSaved }: { settings: SettingsPayload; o
       setResult(data);
       setDraft(null);
       setFile(null);
+      setExtractComplete(false);
       await onSaved();
     } catch (error) {
       setMessage(errorMessage(error));
@@ -647,15 +727,22 @@ function ScanView({ settings, onSetup, onSaved }: { settings: SettingsPayload; o
               setFile(event.target.files?.[0] || null);
               setDraft(null);
               setResult(null);
+              setExtractComplete(false);
+              setMessage(null);
             }}
           />
           <UploadCloud size={28} />
           <span>{file ? file.name : "Choose receipt photo"}</span>
         </label>
 
-        <button className="primary-button wide-button" type="button" onClick={extract} disabled={!file || busy === "ocr"}>
-          {busy === "ocr" ? <Loader2 className="spin" size={18} /> : <Camera size={18} />}
-          <span>Extract receipt</span>
+        <button
+          className={`primary-button wide-button extract-button${extractComplete ? " is-complete" : ""}`}
+          type="button"
+          onClick={extract}
+          disabled={!file || busy === "ocr" || extractComplete}
+        >
+          {busy === "ocr" ? <Loader2 className="spin" size={18} /> : extractComplete ? <CheckCircle2 size={18} /> : <Camera size={18} />}
+          <span>{busy === "ocr" ? "Extracting" : extractComplete ? "Extracted" : "Extract receipt"}</span>
         </button>
       </section>
 
@@ -668,7 +755,7 @@ function ScanView({ settings, onSetup, onSaved }: { settings: SettingsPayload; o
             </div>
             <button className="primary-button" type="button" onClick={save} disabled={busy === "save"}>
               {busy === "save" ? <Loader2 className="spin" size={17} /> : <Save size={17} />}
-              <span>Save</span>
+              <span>{busy === "save" ? "Saving" : "Save"}</span>
             </button>
           </div>
 
@@ -721,6 +808,10 @@ function ScanView({ settings, onSetup, onSaved }: { settings: SettingsPayload; o
             <h2>{result.filename}</h2>
             <p>Saved to {result.sheet.tabName}.</p>
           </div>
+          <button className="primary-button is-complete" type="button" disabled>
+            <CheckCircle2 size={17} />
+            <span>Saved</span>
+          </button>
           <div className="result-links">
             {result.driveFile.url && (
               <a className="secondary-button" href={result.driveFile.url} target="_blank" rel="noreferrer">

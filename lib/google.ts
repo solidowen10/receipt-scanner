@@ -224,17 +224,18 @@ export async function runDriveOcr(userId: string, buffer: Buffer, mimeType: stri
   }
 }
 
-export async function uploadOriginalReceipt(userId: string, buffer: Buffer, mimeType: string, filename: string) {
+export async function uploadOriginalReceipt(userId: string, buffer: Buffer, mimeType: string, filename: string, purchaseDate?: string | null) {
   const user = getStoredUser(userId);
   if (!user.driveFolderId) throw new Error("Drive folder is not configured");
 
   const auth = await getGoogleClientForUser(userId);
   const drive = google.drive({ version: "v3", auth });
+  const monthFolderId = await ensureDriveMonthFolder(drive, user.driveFolderId, monthTitleForDate(purchaseDate));
   const response = await drive.files.create({
     requestBody: {
       name: filename,
       mimeType,
-      parents: [user.driveFolderId],
+      parents: [monthFolderId],
     },
     media: { mimeType, body: bufferToStream(buffer) },
     fields: "id,name,webViewLink",
@@ -297,18 +298,21 @@ export function userGoogleReady(user: StoredUser) {
 async function ensureMonthlySheet(sheets: sheets_v4.Sheets, spreadsheetId: string, tabName: string) {
   const metadata = await sheets.spreadsheets.get({
     spreadsheetId,
-    fields: "sheets.properties.title",
+    fields: "sheets.properties(sheetId,title)",
   });
-  const titles = (metadata.data.sheets || []).map((sheet) => sheet.properties?.title).filter(Boolean);
+  let sheetId = (metadata.data.sheets || []).find((sheet) => sheet.properties?.title === tabName)?.properties?.sheetId;
 
-  if (!titles.includes(tabName)) {
-    await sheets.spreadsheets.batchUpdate({
+  if (sheetId == null) {
+    const response = await sheets.spreadsheets.batchUpdate({
       spreadsheetId,
       requestBody: {
         requests: [{ addSheet: { properties: { title: tabName } } }],
       },
     });
+    sheetId = response.data.replies?.[0]?.addSheet?.properties?.sheetId;
   }
+
+  if (sheetId == null) throw new Error(`Could not resolve sheet tab ${tabName}`);
 
   await sheets.spreadsheets.values.update({
     spreadsheetId,
@@ -316,6 +320,71 @@ async function ensureMonthlySheet(sheets: sheets_v4.Sheets, spreadsheetId: strin
     valueInputOption: "USER_ENTERED",
     requestBody: {
       values: monthlyTemplateRows(tabName),
+    },
+  });
+
+  await applyMonthlyMoneyFormat(sheets, spreadsheetId, sheetId);
+}
+
+async function ensureDriveMonthFolder(drive: drive_v3.Drive, parentId: string, folderName: string) {
+  const existing = await drive.files.list({
+    q: `'${escapeDriveQuery(parentId)}' in parents and mimeType = 'application/vnd.google-apps.folder' and name = '${escapeDriveQuery(folderName)}' and trashed = false`,
+    fields: "files(id,name)",
+    pageSize: 1,
+    supportsAllDrives: true,
+    includeItemsFromAllDrives: true,
+  });
+  const folderId = existing.data.files?.find((file) => file.id)?.id;
+  if (folderId) return folderId;
+
+  const created = await drive.files.create({
+    requestBody: {
+      name: folderName,
+      mimeType: "application/vnd.google-apps.folder",
+      parents: [parentId],
+    },
+    fields: "id,name",
+    supportsAllDrives: true,
+  });
+
+  if (!created.data.id) throw new Error(`Could not create Drive folder ${folderName}`);
+  return created.data.id;
+}
+
+async function applyMonthlyMoneyFormat(sheets: sheets_v4.Sheets, spreadsheetId: string, sheetId: number) {
+  const moneyFormat = {
+    numberFormat: {
+      type: "CURRENCY",
+      pattern: "$#,##0",
+    },
+  };
+
+  await sheets.spreadsheets.batchUpdate({
+    spreadsheetId,
+    requestBody: {
+      requests: [
+        {
+          repeatCell: {
+            range: { sheetId, startRowIndex: 1, endRowIndex: 2, startColumnIndex: 1, endColumnIndex: 2 },
+            cell: { userEnteredFormat: moneyFormat },
+            fields: "userEnteredFormat.numberFormat",
+          },
+        },
+        {
+          repeatCell: {
+            range: { sheetId, startRowIndex: 1, endRowIndex: 10, startColumnIndex: 4, endColumnIndex: 5 },
+            cell: { userEnteredFormat: moneyFormat },
+            fields: "userEnteredFormat.numberFormat",
+          },
+        },
+        {
+          repeatCell: {
+            range: { sheetId, startRowIndex: 11, startColumnIndex: 5, endColumnIndex: 6 },
+            cell: { userEnteredFormat: moneyFormat },
+            fields: "userEnteredFormat.numberFormat",
+          },
+        },
+      ],
     },
   });
 }
@@ -437,7 +506,11 @@ function currentMonthTitle() {
 }
 
 function monthTitleForRecord(record: ReceiptSheetRecord) {
-  if (record.date && /^\d{4}-\d{2}/.test(record.date)) return record.date.slice(0, 7);
+  return monthTitleForDate(record.date);
+}
+
+function monthTitleForDate(date?: string | null) {
+  if (date && /^\d{4}-\d{2}/.test(date)) return date.slice(0, 7);
   return currentMonthTitle();
 }
 

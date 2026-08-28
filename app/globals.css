@@ -84,7 +84,7 @@ h2 {
 .luru-shell-header {
   position: sticky;
   top: 0;
-  z-index: 700;
+  z-index: 900;
   min-height: var(--shell-header-height);
   display: flex;
   align-items: center;
@@ -403,6 +403,41 @@ h2 {
 
 .primary-button:hover {
   background: var(--green-dark);
+}
+
+.primary-button.is-complete,
+.secondary-button.is-complete,
+.small-button.is-complete {
+  border-color: color-mix(in srgb, var(--green) 52%, var(--line));
+  background: color-mix(in srgb, var(--green) 18%, #ffffff);
+  color: #7a6100;
+}
+
+.primary-button.is-complete:disabled,
+.secondary-button.is-complete:disabled,
+.small-button.is-complete:disabled,
+.extract-button.is-complete:disabled {
+  cursor: default;
+  opacity: 1;
+}
+
+.extract-button {
+  border-color: #a77f00;
+  background: #b88900;
+  color: #ffffff;
+  box-shadow: 0 10px 22px rgba(184, 137, 0, 0.22);
+}
+
+.extract-button:hover {
+  border-color: #8f6c00;
+  background: #9f7800;
+}
+
+.extract-button.is-complete {
+  border-color: #d4ad00;
+  background: color-mix(in srgb, var(--green) 26%, #ffffff);
+  color: #6f5700;
+  box-shadow: none;
 }
 
 .secondary-button {
@@ -844,6 +879,13 @@ button:disabled,
 
 .luru-footer-link:hover {
   text-decoration: underline;
+}
+
+.luru-footer-text {
+  color: var(--ink-soft);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.45;
 }
 
 @media (max-width: 760px) {

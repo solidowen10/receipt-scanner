@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "luruee | Receipt Scanner",
+  title: "lürúee | Receipt Scanner",
   description: "Receipt capture, Drive filing, and monthly Google Sheet entries",
   icons: {
     icon: "/receipt-scanner/luruee-logo.png",
