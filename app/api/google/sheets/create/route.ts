@@ -9,7 +9,7 @@ export async function POST(request: NextRequest) {
   try {
     const user = await requireCurrentUser(request);
     const body = (await request.json().catch(() => ({}))) as { title?: string };
-    const sheet = await createSpreadsheet(user.userId, body.title?.trim() || "lürú receipt scanner");
+    const sheet = await createSpreadsheet(user.userId, body.title?.trim() || "lürúee receipt scanner");
     return NextResponse.json({ sheet });
   } catch (error) {
     return jsonError(error);

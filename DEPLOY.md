@@ -1,6 +1,6 @@
 # Deploying to tool.luruee.com/receipt-scanner
 
-This app is ready for the same self-hosted pattern used by the existing lürú tools:
+This app is ready for the same self-hosted pattern used by the existing lürúee tools:
 
 - one PM2 process per tool
 - Nginx path proxy
@@ -60,7 +60,7 @@ Add the location block from:
 deploy/nginx-receipt-scanner.conf
 ```
 
-to the `luruee.com` server block, then test and reload Nginx.
+to the `tool.luruee.com` server block, then test and reload Nginx.
 
 ## 6. Verify
 

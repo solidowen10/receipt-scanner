@@ -128,7 +128,7 @@ export async function listSheets(userId: string): Promise<SheetFile[]> {
     .map((file) => ({ id: file.id, name: file.name }));
 }
 
-export async function createSpreadsheet(userId: string, title = "lürú receipt scanner") {
+export async function createSpreadsheet(userId: string, title = "lürúee receipt scanner") {
   const auth = await getGoogleClientForUser(userId);
   const sheets = google.sheets({ version: "v4", auth });
   const response = await sheets.spreadsheets.create({
@@ -436,7 +436,7 @@ function createOAuthClient() {
 
 function googleRedirectUri() {
   if (process.env.GOOGLE_REDIRECT_URI) return process.env.GOOGLE_REDIRECT_URI;
-  const publicBase = (process.env.PUBLIC_BASE_URL || `https://luruee.com${APP_BASE_PATH}`).replace(/\/+$/, "");
+  const publicBase = (process.env.PUBLIC_BASE_URL || `https://tool.luruee.com${APP_BASE_PATH}`).replace(/\/+$/, "");
   return `${publicBase}/api/google/auth/callback`;
 }
 

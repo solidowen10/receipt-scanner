@@ -223,7 +223,7 @@ function SetupView({
 }) {
   const [folderLink, setFolderLink] = useState("");
   const [sheetLink, setSheetLink] = useState("");
-  const [sheetTitle, setSheetTitle] = useState("lürú receipt scanner");
+  const [sheetTitle, setSheetTitle] = useState("lürúee receipt scanner");
   const [defaultPayerShortName, setDefaultPayerShortName] = useState(settings.defaultPayerShortName || "");
   const [template, setTemplate] = useState<FilenameSegment[]>(settings.filenameTemplate || DEFAULT_TEMPLATE);
   const [folders, setFolders] = useState<FolderOption[]>([]);

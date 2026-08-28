@@ -1,12 +1,12 @@
 # luruee · Receipt Scanner
 
-Receipt photo capture for the luruee tools suite.
+Receipt photo capture for the lürúee tools suite.
 
 **Stack:** Next.js 16 App Router · TypeScript · SQLite · Google OAuth · Drive API · Sheets API
 
 ## What it does
 
-- Uses the shared lürú LINE login session from `/auth/api/session`
+- Uses the shared lürúee tools LINE login session from `/auth/api/session`
 - Connects each user's Google account from inside the app
 - Accepts Drive folder and Sheet configuration by pasted link or in-app selection
 - Captures/uploads a receipt photo from mobile camera or file picker
@@ -57,10 +57,10 @@ Create an OAuth client and add this local callback:
 http://localhost:3006/receipt-scanner/api/google/auth/callback
 ```
 
-Production callback for the updated domain:
+Production callback for the updated tools host:
 
 ```text
-https://luruee.com/receipt-scanner/api/google/auth/callback
+https://tool.luruee.com/receipt-scanner/api/google/auth/callback
 ```
 
 Scopes used:
@@ -93,8 +93,8 @@ This app is intentionally a sibling app under:
 /Users/owenree/Documents/lürú tools/github-src/receipt-scanner
 ```
 
-The existing deployment pattern is a path-based self-hosted deployment behind Nginx. This app is configured for the future path:
+The existing deployment pattern is a path-based self-hosted deployment behind Nginx. This app is configured for the future tools-host path:
 
 ```text
-/receipt-scanner
+https://tool.luruee.com/receipt-scanner
 ```
