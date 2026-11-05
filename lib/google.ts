@@ -2,7 +2,8 @@ import { google, type drive_v3, type sheets_v4 } from "googleapis";
 import crypto from "node:crypto";
 import { Readable } from "node:stream";
 import { APP_BASE_PATH, CATEGORY_OPTIONS } from "@/lib/constants";
-import { getStoredUser, saveGoogleTokens, updateSettings, type StoredUser } from "@/lib/db";
+import { disconnectGoogle, getStoredUser, saveGoogleTokens, updateSettings, type StoredUser } from "@/lib/db";
+import { GOOGLE_RECONNECT_REQUIRED_MESSAGE, isGoogleInvalidGrant } from "@/lib/google-errors";
 
 const GOOGLE_SCOPES = [
   "https://www.googleapis.com/auth/drive",
@@ -418,9 +419,17 @@ async function getGoogleClientForUser(userId: string) {
   });
 
   if (stored.refreshToken && tokenExpired(stored)) {
-    const { credentials } = await oauth.refreshAccessToken();
-    saveGoogleTokens(userId, credentials);
-    oauth.setCredentials(credentials);
+    try {
+      const { credentials } = await oauth.refreshAccessToken();
+      saveGoogleTokens(userId, credentials);
+      oauth.setCredentials(credentials);
+    } catch (error) {
+      if (isGoogleInvalidGrant(error)) {
+        disconnectGoogle(userId);
+        throw new Error(GOOGLE_RECONNECT_REQUIRED_MESSAGE);
+      }
+      throw error;
+    }
   }
 
   return oauth;

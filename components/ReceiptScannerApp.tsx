@@ -21,6 +21,7 @@ import LuruFooter from "@/components/LuruFooter";
 import LuruShellHeader, { type ReceiptTab } from "@/components/LuruShellHeader";
 import { APP_BASE_PATH, CATEGORY_OPTIONS, PAYMENT_METHODS } from "@/lib/constants";
 import { DEFAULT_TEMPLATE, renderFilenamePreview, type FilenameSegment } from "@/lib/filename-template";
+import { GOOGLE_RECONNECT_REQUIRED_MESSAGE } from "@/lib/google-errors";
 import type { ReceiptDraft } from "@/lib/receipt-parse";
 
 type User = {
@@ -203,7 +204,16 @@ export default function ReceiptScannerApp() {
 
       <main className="app-main">
         {tab === "scan" ? (
-          <ScanView settings={settings} onSetup={() => setTab("setup")} onSaved={loadSettings} />
+          <ScanView
+            settings={settings}
+            onSetup={() => setTab("setup")}
+            onSaved={loadSettings}
+            onReconnectRequired={async () => {
+              setNotice(GOOGLE_RECONNECT_REQUIRED_MESSAGE);
+              await loadSettings();
+              setTab("setup");
+            }}
+          />
         ) : (
           <SetupView settings={settings} onSaveSettings={saveSettings} onReload={loadSettings} />
         )}
@@ -221,8 +231,8 @@ function SetupView({
   onSaveSettings: (payload: Record<string, unknown>) => Promise<SettingsPayload>;
   onReload: () => Promise<void>;
 }) {
-  const [folderLink, setFolderLink] = useState("");
-  const [sheetLink, setSheetLink] = useState("");
+  const [folderLink, setFolderLink] = useState(() => driveFolderUrl(settings.driveFolderId));
+  const [sheetLink, setSheetLink] = useState(() => googleSheetUrl(settings.sheetId));
   const [sheetTitle, setSheetTitle] = useState("lürúee receipt scanner");
   const [defaultPayerShortName, setDefaultPayerShortName] = useState(settings.defaultPayerShortName || "");
   const [template, setTemplate] = useState<FilenameSegment[]>(settings.filenameTemplate || DEFAULT_TEMPLATE);
@@ -244,6 +254,14 @@ function SetupView({
     setTemplate(settings.filenameTemplate || DEFAULT_TEMPLATE);
   }, [settings.defaultPayerShortName, settings.filenameTemplate]);
 
+  useEffect(() => {
+    setFolderLink(driveFolderUrl(settings.driveFolderId));
+  }, [settings.driveFolderId]);
+
+  useEffect(() => {
+    setSheetLink(googleSheetUrl(settings.sheetId));
+  }, [settings.sheetId]);
+
   const googleConfigured = settings.googleConfig.hasClientId && settings.googleConfig.hasClientSecret;
 
   const saveFolderLink = async () => {
@@ -251,7 +269,6 @@ function SetupView({
     setMessage(null);
     try {
       await onSaveSettings({ driveFolderInput: folderLink });
-      setFolderLink("");
       setSavedAction("folder-link");
       setMessage("Drive folder saved.");
     } catch (error) {
@@ -266,7 +283,6 @@ function SetupView({
     setMessage(null);
     try {
       await onSaveSettings({ sheetInput: sheetLink });
-      setSheetLink("");
       setSavedAction("sheet-link");
       setMessage("Google Sheet saved.");
     } catch (error) {
@@ -610,7 +626,17 @@ function SetupView({
   );
 }
 
-function ScanView({ settings, onSetup, onSaved }: { settings: SettingsPayload; onSetup: () => void; onSaved: () => Promise<void> }) {
+function ScanView({
+  settings,
+  onSetup,
+  onSaved,
+  onReconnectRequired,
+}: {
+  settings: SettingsPayload;
+  onSetup: () => void;
+  onSaved: () => Promise<void>;
+  onReconnectRequired: () => Promise<void>;
+}) {
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -663,7 +689,12 @@ function ScanView({ settings, onSetup, onSaved }: { settings: SettingsPayload; o
       setExtractComplete(true);
     } catch (error) {
       setExtractComplete(false);
-      setMessage(errorMessage(error));
+      const message = errorMessage(error);
+      if (message === GOOGLE_RECONNECT_REQUIRED_MESSAGE) {
+        await onReconnectRequired();
+      } else {
+        setMessage(message);
+      }
     } finally {
       setBusy(null);
     }
@@ -685,7 +716,12 @@ function ScanView({ settings, onSetup, onSaved }: { settings: SettingsPayload; o
       setExtractComplete(false);
       await onSaved();
     } catch (error) {
-      setMessage(errorMessage(error));
+      const message = errorMessage(error);
+      if (message === GOOGLE_RECONNECT_REQUIRED_MESSAGE) {
+        await onReconnectRequired();
+      } else {
+        setMessage(message);
+      }
     } finally {
       setBusy(null);
     }
@@ -849,6 +885,14 @@ function TextField({
       <input value={value} onChange={(event) => onChange(event.target.value)} placeholder={placeholder} inputMode={inputMode} />
     </label>
   );
+}
+
+function driveFolderUrl(folderId: string | null) {
+  return folderId ? `https://drive.google.com/drive/folders/${folderId}` : "";
+}
+
+function googleSheetUrl(sheetId: string | null) {
+  return sheetId ? `https://docs.google.com/spreadsheets/d/${sheetId}/edit` : "";
 }
 
 function api(path: string) {
