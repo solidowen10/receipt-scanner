@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import fs from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
+import heicConvert from "heic-convert";
 import { requireCurrentUser } from "@/lib/auth";
 import { createUpload, dataDir, getStoredUser } from "@/lib/db";
 import { extensionForFile } from "@/lib/filename-template";
@@ -10,6 +11,27 @@ import { jsonError } from "@/lib/http";
 import { parseReceiptText } from "@/lib/receipt-parse";
 
 export const runtime = "nodejs";
+
+async function prepareForDriveOcr(
+  buffer: Buffer,
+  mimeType: string,
+  filename: string,
+) {
+  if (!isHeifImage(filename, mimeType)) {
+    return { buffer, mimeType };
+  }
+
+  const jpeg = await heicConvert({
+    buffer,
+    format: "JPEG",
+    quality: 0.88,
+  });
+
+  return {
+    buffer: Buffer.from(jpeg),
+    mimeType: "image/jpeg",
+  };
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,24 +42,38 @@ export async function POST(request: NextRequest) {
     const form = await request.formData();
     const file = form.get("receipt");
     if (!(file instanceof File)) throw new Error("Receipt image is required");
-    if (!file.type.startsWith("image/") && file.type !== "application/pdf") throw new Error("Upload an image or PDF receipt");
+    const heifImage = isHeifImage(file.name, file.type);
+    if (!file.type.startsWith("image/") && file.type !== "application/pdf" && !heifImage) {
+      throw new Error("Upload an image or PDF receipt");
+    }
 
     const buffer = Buffer.from(await file.arrayBuffer());
     if (buffer.byteLength > 12 * 1024 * 1024) throw new Error("Receipt file must be under 12 MB");
 
     const uploadId = randomUUID();
     const extension = extensionForFile(file.name, file.type);
+    const originalMimeType = file.type || (heifImage ? "image/heif" : "image/jpeg");
     const filePath = path.join(dataDir(), `${uploadId}${extension}`);
     fs.writeFileSync(filePath, buffer);
 
-    const ocrText = await runDriveOcr(user.userId, buffer, file.type || "image/jpeg");
+    const ocrInput = await prepareForDriveOcr(
+      buffer,
+      originalMimeType,
+      file.name,
+    );
+
+    const ocrText = await runDriveOcr(
+      user.userId,
+      ocrInput.buffer,
+      ocrInput.mimeType,
+    );
     const draft = parseReceiptText(ocrText);
 
     createUpload({
       id: uploadId,
       userId: user.userId,
       originalName: file.name || `receipt${extension}`,
-      mimeType: file.type || "image/jpeg",
+      mimeType: originalMimeType,
       extension,
       filePath,
       ocrText,
@@ -54,4 +90,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return jsonError(error);
   }
+}
+
+function isHeifImage(filename: string, mimeType: string) {
+  return /^image\/hei[cf](?:-sequence)?$/i.test(mimeType) || /\.(?:heic|heif)$/i.test(filename);
 }

@@ -137,6 +137,7 @@ export function extensionForFile(filename?: string | null, mimeType?: string | n
   if (mimeType === "image/png") return ".png";
   if (mimeType === "image/webp") return ".webp";
   if (mimeType === "image/heic") return ".heic";
+  if (mimeType === "image/heif") return ".heif";
   if (mimeType === "application/pdf") return ".pdf";
   return ".jpg";
 }

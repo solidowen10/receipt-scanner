@@ -644,6 +644,14 @@ function ScanView({
   const [result, setResult] = useState<SaveResult | null>(null);
   const [extractComplete, setExtractComplete] = useState(false);
 
+  const selectReceiptFile = (nextFile: File | null) => {
+    setFile(nextFile);
+    setDraft(null);
+    setResult(null);
+    setExtractComplete(false);
+    setMessage(null);
+  };
+
   const filenamePreview = useMemo(() => {
     if (!draft) return renderFilenamePreview(settings.filenameTemplate, { payerShortName: settings.defaultPayerShortName || "OL" });
     return renderFilenamePreview(settings.filenameTemplate, {
@@ -754,22 +762,37 @@ function ScanView({
           <p className="muted-copy">Drive folder: {settings.driveFolderName}</p>
         </div>
 
-        <label className="upload-drop">
-          <input
-            type="file"
-            accept="image/*,application/pdf"
-            capture="environment"
-            onChange={(event) => {
-              setFile(event.target.files?.[0] || null);
-              setDraft(null);
-              setResult(null);
-              setExtractComplete(false);
-              setMessage(null);
-            }}
-          />
-          <UploadCloud size={28} />
-          <span>{file ? file.name : "Choose receipt photo"}</span>
-        </label>
+        <div className="upload-picker">
+          <label className="upload-option">
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              aria-label="Take receipt photo"
+              onChange={(event) => selectReceiptFile(event.target.files?.[0] || null)}
+            />
+            <Camera size={25} />
+            <span>Take photo</span>
+          </label>
+
+          <label className="upload-option secondary">
+            <input
+              type="file"
+              accept="image/*,.heic,.heif,application/pdf"
+              aria-label="Choose receipt file"
+              onChange={(event) => selectReceiptFile(event.target.files?.[0] || null)}
+            />
+            <UploadCloud size={25} />
+            <span>Choose file</span>
+          </label>
+
+          {file && (
+            <div className="selected-upload" title={file.name}>
+              <CheckCircle2 size={17} />
+              <span>{file.name}</span>
+            </div>
+          )}
+        </div>
 
         <button
           className={`primary-button wide-button extract-button${extractComplete ? " is-complete" : ""}`}
